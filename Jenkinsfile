@@ -6,6 +6,10 @@ pipeline {
         maven 'maven-3'
     }
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     stages {
 
         stage('Checkout') {
@@ -14,16 +18,17 @@ pipeline {
             }
         }
 
-stage('Build') {
-    steps {
-        bat '''
-        mvn clean package ^
-        -Dmaven.repo.local=%WORKSPACE%\\.m2 ^
-        -DskipTests
-        '''
-    }
-}
-
+        stage('Build') {
+            steps {
+                bat '''
+                mvn clean package ^
+                -DskipTests ^
+                -Dmaven.repo.local=%WORKSPACE%\\.m2 ^
+                -Dmaven.artifact.threads=1 ^
+                --no-transfer-progress
+                '''
+            }
+        }
 
         stage('Docker Build & Run') {
             steps {
