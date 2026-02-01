@@ -30,11 +30,14 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Run') {
-            steps {
-                bat 'docker compose down -v'
-                bat 'docker compose up --build -d'
-            }
-        }
+       stage('Docker Build & Run') {
+           steps {
+               bat '''
+               docker compose -f docker-compose.yml down -v
+               docker compose -f docker-compose.yml up --build -d
+               '''
+           }
+       }
+
     }
 }
