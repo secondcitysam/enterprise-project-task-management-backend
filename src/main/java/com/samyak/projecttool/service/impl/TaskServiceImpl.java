@@ -1,0 +1,88 @@
+package com.samyak.projecttool.service.impl;
+
+import com.samyak.projecttool.dto.TaskCreateDTO;
+import com.samyak.projecttool.dto.TaskResponseDTO;
+import com.samyak.projecttool.entity.Project;
+import com.samyak.projecttool.entity.Task;
+import com.samyak.projecttool.entity.enums.TaskStatus;
+import com.samyak.projecttool.exception.ResourceNotFoundException;
+import com.samyak.projecttool.repository.ProjectRepository;
+import com.samyak.projecttool.repository.TaskRepository;
+import com.samyak.projecttool.service.TaskService;
+import com.samyak.projecttool.service.validator.AuthorizationValidator;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class TaskServiceImpl implements TaskService {
+
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final AuthorizationValidator authorizationValidator;
+    private final ModelMapper modelMapper;
+
+    public TaskServiceImpl(
+            TaskRepository taskRepository,
+            ProjectRepository projectRepository,
+            AuthorizationValidator authorizationValidator,
+            ModelMapper modelMapper
+    ) {
+        this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
+        this.authorizationValidator = authorizationValidator;
+        this.modelMapper = modelMapper;
+    }
+
+    @Override
+    public TaskResponseDTO createTask(Long userId, Long projectId, TaskCreateDTO dto) {
+        authorizationValidator.validateActiveUser(userId);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        authorizationValidator.validateProjectOwnership(userId, project);
+        authorizationValidator.validateProjectIsActive(project);
+
+        Task task = new Task();
+        task.setTitle(dto.getTitle());
+        task.setDescription(dto.getDescription());
+        task.setPriority(dto.getPriority());
+        task.setProjectId(projectId);
+        task.setStatus(TaskStatus.OPEN);
+
+        return modelMapper.map(taskRepository.save(task), TaskResponseDTO.class);
+    }
+
+    @Override
+    public List<TaskResponseDTO> getTasksForProject(Long userId, Long projectId) {
+        authorizationValidator.validateActiveUser(userId);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        authorizationValidator.validateProjectOwnership(userId, project);
+
+        return taskRepository.findAllByProjectId(projectId)
+                .stream()
+                .map(t -> modelMapper.map(t, TaskResponseDTO.class))
+                .toList();
+    }
+
+    @Override
+    public TaskResponseDTO archiveTask(Long userId, Long taskId) {
+        authorizationValidator.validateActiveUser(userId);
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        Project project = projectRepository.findById(task.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+        authorizationValidator.validateProjectOwnership(userId, project);
+
+        task.setStatus(TaskStatus.ARCHIVED);
+        return modelMapper.map(taskRepository.save(task), TaskResponseDTO.class);
+    }
+}
