@@ -14,11 +14,16 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                bat 'mvn clean package'
-            }
-        }
+stage('Build') {
+    steps {
+        bat '''
+        mvn clean package ^
+        -Dmaven.repo.local=%WORKSPACE%\\.m2 ^
+        -DskipTests
+        '''
+    }
+}
+
 
         stage('Docker Build & Run') {
             steps {
