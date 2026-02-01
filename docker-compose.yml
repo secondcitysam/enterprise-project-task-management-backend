@@ -4,8 +4,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: kotlin2025
       MYSQL_DATABASE: project_tool
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
